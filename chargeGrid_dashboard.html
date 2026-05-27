@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChargeGrid Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6f9;--bg-card:#ffffff;--bg-sel:#eef6ff;--bg-el:#f0f4f8;
+  --bd:#d1dbe8;--bd2:#b0c4d8;
+  --cy:#0070cc;--cy-d:rgba(0,112,204,.08);--cy-g:rgba(0,112,204,.18);
+  --gr:#00a651;--gr-d:rgba(0,166,81,.08);--gr-g:rgba(0,166,81,.15);
+  --am:#e07b00;--am-d:rgba(224,123,0,.08);--am-g:rgba(224,123,0,.15);
+  --rd:#d32f2f;--rd-d:rgba(211,47,47,.08);
+  --pu:#7b5ea7;--pu-d:rgba(123,94,167,.08);
+  --tx:#2c3e50;--tx-b:#1a252f;--tx-d:#5d7a8a;--tx-m:#9baebb;
+  --fn:'Rajdhani',sans-serif;--mo:'JetBrains Mono',monospace;
+}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:15px}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,112,204,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,112,204,.04) 1px,transparent 1px);background-size:52px 52px;pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:60px;background:#ffffff;border-bottom:1px solid var(--bd);box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:var(--cy-d);border:1px solid var(--cy);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-title{font-size:16px;font-weight:700;color:var(--tx-b);letter-spacing:1px;text-transform:uppercase}
+.logo-sub{font-size:9px;color:var(--cy);letter-spacing:3px;text-transform:uppercase;font-family:var(--mo)}
+.hdr-right{display:flex;align-items:center;gap:16px}
+.clock{font-size:22px;font-weight:700;color:var(--cy);font-family:var(--mo);letter-spacing:2px;min-width:88px;text-align:right}
+.btn-sim{padding:7px 16px;background:var(--cy-d);border:1px solid var(--cy);border-radius:6px;color:var(--cy);font-family:var(--fn);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-sim:hover{background:var(--cy);color:#fff}
+.hdr-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mo);padding:4px 10px;border-radius:20px;letter-spacing:1px}
+.hdr-badge.live{background:var(--gr-d);border:1px solid var(--gr);color:var(--gr)}
+.hdr-badge.ps{background:var(--am-d);border:1px solid var(--am);color:var(--am)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── METRICS BAR ── */
+.metrics-bar{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 28px}
+.mc{background:var(--bg-card);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;transition:border-color .2s}
+.mc:hover{border-color:var(--bd2)}
+.mc-label{font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo);margin-bottom:8px}
+.mc-value{font-size:26px;font-weight:700;color:var(--tx-b);font-family:var(--mo);line-height:1;margin-bottom:4px}
+.mc-sub{font-size:11px;color:var(--tx-m);font-family:var(--mo)}
+.mc.cy .mc-value{color:var(--cy)}
+.mc.gr .mc-value{color:var(--gr)}
+.mc.am .mc-value{color:var(--am)}
+
+/* ── PEAK SHAVING ALERT ── */
+.ps-alert{display:none;align-items:center;gap:12px;margin:0 28px 12px;padding:12px 18px;background:var(--am-d);border:1px solid var(--am);border-radius:10px;animation:slideDown .3s ease}
+.ps-alert.show{display:flex}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.ps-alert-icon{font-size:20px;flex-shrink:0}
+.ps-alert-txt{font-size:14px;color:var(--am);font-family:var(--mo)}
+.ps-alert-txt strong{color:var(--tx-b)}
+
+/* ── BODY LAYOUT ── */
+.body-layout{position:relative;z-index:1;display:grid;grid-template-columns:1fr 310px;gap:0;min-height:calc(100vh - 160px)}
+.body-main{padding:0 28px 28px;display:flex;flex-direction:column;gap:16px;border-right:1px solid var(--bd)}
+.body-side{padding:0 20px 28px;display:flex;flex-direction:column;gap:14px}
+
+/* ── SECTION HEADERS ── */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo)}
+.sec-tag{font-size:10px;color:var(--tx-m);font-family:var(--mo)}
+
+/* ── DEMAND CHART ── */
+.chart-wrap{background:var(--bg-card);border:1px solid var(--bd);border-radius:12px;padding:16px 18px}
+.chart-canvas-wrap{position:relative;width:100%;height:160px}
+.chart-legend{display:flex;gap:16px;margin-bottom:10px}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--tx-m);font-family:var(--mo)}
+.cl-dot{width:22px;height:3px;border-radius:2px;flex-shrink:0}
+
+/* ── VAGAS GRID ── */
+.vagas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.vc{background:var(--bg-card);border:1px solid var(--bd);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;transition:all .3s;position:relative;overflow:hidden;cursor:pointer;min-height:250px}
+.vc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--bd);transition:all .3s}
+.vc.ativa{border-color:var(--gr);box-shadow:0 0 24px var(--gr-g),inset 0 0 40px var(--gr-d);cursor:default}
+.vc.ativa::before{background:linear-gradient(90deg,transparent,var(--gr),transparent)}
+.vc.ps-on{border-color:var(--am);box-shadow:0 0 20px var(--am-g),inset 0 0 30px var(--am-d)}
+.vc.ps-on::before{background:linear-gradient(90deg,transparent,var(--am),transparent)}
+.vc:not(.ativa):not(.ps-on):hover{border-color:var(--cy);box-shadow:0 0 16px var(--cy-g)}
+.vc-hdr{display:flex;justify-content:space-between;align-items:center}
+.vc-num{font-size:10px;font-weight:600;letter-spacing:3px;color:var(--tx-m);font-family:var(--mo)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--bd)}
+.dot.on{background:var(--gr);box-shadow:0 0 8px var(--gr);animation:pulse 2s infinite}
+.dot.ps{background:var(--am);box-shadow:0 0 8px var(--am);animation:pulse 1s infinite}
+.vc-livre{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 0}
+.vc-livre-ico{font-size:40px;opacity:.15}
+.vc-livre-txt{font-size:18px;font-weight:700;color:var(--tx-m);letter-spacing:3px;text-transform:uppercase}
+.vc-btn{width:100%;padding:12px;background:var(--cy-d);border:1px solid var(--cy);border-radius:8px;color:var(--cy);font-family:var(--fn);font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.vc-btn:hover{background:var(--cy);color:#fff;box-shadow:0 0 16px var(--cy-g)}
+.vc-nome{font-size:17px;font-weight:700;color:var(--tx-b);margin-bottom:2px}
+.vc-rec{font-size:11px;color:var(--cy);font-family:var(--mo);letter-spacing:1px}
+.vc-ps-badge{display:inline-block;font-size:9px;font-family:var(--mo);letter-spacing:1px;padding:2px 8px;background:var(--am-d);border:1px solid var(--am);border-radius:4px;color:var(--am);margin-top:2px}
+.vc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+.vstat{background:var(--bg-el);border:1px solid var(--bd);border-radius:6px;padding:7px 9px}
+.vstat-lbl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo)}
+.vstat-val{font-size:14px;font-weight:700;font-family:var(--mo);margin-top:2px;color:var(--tx-b)}
+.vstat-val.gr{color:var(--gr)}.vstat-val.cy{color:var(--cy)}.vstat-val.am{color:var(--am)}.vstat-val.rd{color:var(--rd)}
+.vc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.vtag{font-size:9px;padding:2px 7px;border-radius:4px;font-family:var(--mo);letter-spacing:1px;border:1px solid}
+.vtag-s{color:var(--gr);border-color:var(--gr);background:var(--gr-d)}
+.vtag-b{color:var(--am);border-color:var(--am);background:var(--am-d)}
+.vtag-r{color:var(--cy);border-color:var(--cy);background:var(--cy-d)}
+.vtag-n{color:var(--tx-d);border-color:var(--bd);background:transparent}
+.btn-rep{flex:1;padding:10px;background:var(--cy-d);border:1px solid var(--cy);border-radius:8px;color:var(--cy);font-family:var(--fn);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-rep:hover{background:var(--cy);color:#fff}
+.btn-stop{flex:2;padding:10px;background:var(--rd-d);border:1px solid var(--rd);border-radius:8px;color:var(--rd);font-family:var(--fn);font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-stop:hover{background:var(--rd);color:#fff}
+
+/* ── DEMAND ROW ── */
+.demand-row{display:flex;align-items:center;gap:14px;background:var(--bg-card);border:1px solid var(--bd);border-radius:10px;padding:12px 18px}
+.d-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo);white-space:nowrap}
+.d-val{font-size:20px;font-weight:700;color:var(--cy);font-family:var(--mo);white-space:nowrap;min-width:80px}
+.d-track{flex:1;height:8px;background:var(--bd);border-radius:4px;overflow:hidden;position:relative}
+.d-fill{height:100%;background:linear-gradient(90deg,var(--gr),var(--cy),var(--am));border-radius:4px;transition:width .5s ease}
+.d-pct{font-size:13px;font-weight:600;color:var(--tx-d);font-family:var(--mo);white-space:nowrap;min-width:34px}
+.d-vagas{font-size:12px;color:var(--tx-d);font-family:var(--mo);white-space:nowrap}
+.d-tarifa{font-size:12px;font-weight:600;color:var(--am);font-family:var(--mo);white-space:nowrap}
+.btn-admin{padding:6px 12px;background:transparent;border:1px solid var(--bd2);border-radius:6px;color:var(--tx-d);font-family:var(--mo);font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-admin:hover{border-color:var(--cy);color:var(--cy)}
+
+/* ── ADMIN PANEL ── */
+.admin{background:var(--bg-card);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.atabs{display:flex;border-bottom:1px solid var(--bd)}
+.atab{padding:9px 18px;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--tx-m);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:var(--mo)}
+.atab.on{color:var(--cy);border-bottom-color:var(--cy)}
+.atbody{display:none;padding:14px}.atbody.on{display:block}
+.console{background:#f8fafc;border-radius:8px;padding:10px 12px;height:160px;overflow-y:auto;font-family:var(--mo);font-size:11px;line-height:1.7;border:1px solid var(--bd)}
+.console::-webkit-scrollbar{width:3px}.console::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.l-ts{color:var(--tx-m)}.l-co{color:#0070cc}.l-ci{color:#00a651}.l-mb{color:#e07b00}.l-sy{color:#7b5ea7}.l-ai{color:#00a09a}
+table.ht{width:100%;border-collapse:collapse;font-family:var(--mo);font-size:10px}
+table.ht th{text-align:left;padding:5px 8px;color:var(--tx-m);font-size:8px;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--bd)}
+table.ht td{padding:7px 8px;border-bottom:1px solid var(--bd);color:var(--tx)}
+table.ht tr:last-child td{border-bottom:none}
+table.ht tbody tr:hover td{background:var(--bg-el)}
+.ht-foot{display:flex;justify-content:flex-end;gap:20px;padding-top:8px;border-top:1px solid var(--bd);margin-top:6px;font-family:var(--mo);font-size:10px}
+.hempty{text-align:center;color:var(--tx-m);padding:24px;font-family:var(--mo);font-size:11px}
+
+/* ── SIDE PANELS ── */
+.side-card{background:var(--bg-card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+
+/* AI Panel */
+.ai-status{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;margin-bottom:12px;font-size:12px;font-family:var(--mo)}
+.ai-status.ok{background:var(--gr-d);border:1px solid var(--gr);color:var(--gr)}
+.ai-status.warn{background:var(--am-d);border:1px solid var(--am);color:var(--am)}
+.ai-status.crit{background:var(--rd-d);border:1px solid var(--rd);color:var(--rd)}
+.ai-rec{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)}
+.ai-rec:last-child{border-bottom:none}
+.ai-rec-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.ai-rec-txt{font-size:12px;color:var(--tx);line-height:1.5;font-family:var(--mo)}
+
+/* Tariff panel */
+.tariff-tabs{display:flex;gap:6px;margin-bottom:10px}
+.tt{flex:1;padding:6px 4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;text-align:center;border-radius:6px;cursor:pointer;border:1px solid var(--bd);color:var(--tx-m);background:transparent;font-family:var(--mo);transition:all .2s}
+.tt:hover{border-color:var(--bd2);color:var(--tx)}
+.tt.on{background:var(--bg-el);border-color:var(--bd2);color:var(--tx-b)}
+.tariff-box{background:var(--bg-el);border:1px solid var(--bd);border-radius:8px;padding:12px 14px}
+.tariff-price{font-size:28px;font-weight:700;font-family:var(--mo);line-height:1}
+.tariff-unit{font-size:11px;color:var(--tx-m);font-family:var(--mo)}
+.tariff-desc{font-size:11px;color:var(--tx-d);margin-top:6px;line-height:1.5;font-family:var(--mo)}
+
+/* Energy mix panel */
+.energy-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)}
+.energy-row:last-child{border-bottom:none}
+.energy-ico{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.energy-name{font-size:11px;font-weight:600;color:var(--tx-b);font-family:var(--mo);flex:1}
+.energy-bar-wrap{width:70px;height:5px;background:var(--bd);border-radius:3px;overflow:hidden}
+.energy-bar{height:100%;border-radius:3px;transition:width .8s ease}
+.energy-kw{font-size:11px;font-family:var(--mo);font-weight:600;min-width:48px;text-align:right}
+
+/* Billing panel */
+.bill-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd);font-size:12px}
+.bill-row:last-child{border-bottom:none;padding-top:10px}
+.bill-lbl{color:var(--tx-d);font-family:var(--mo)}
+.bill-val{font-weight:700;color:var(--tx-b);font-family:var(--mo)}
+.bill-val.big{font-size:20px;color:var(--am)}
+
+/* ── KIOSK OVERLAY ── */
+.kiosk-overlay{display:none;position:fixed;inset:0;background:rgba(244,246,249,.97);backdrop-filter:blur(8px);z-index:50;flex-direction:column;align-items:center;justify-content:flex-start;overflow-y:auto;padding:0}
+.kiosk-overlay.open{display:flex}
+.kiosk-inner{width:100%;max-width:620px;min-height:100vh;display:flex;flex-direction:column;padding:32px 24px 100px}
+.ksteps{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:32px}
+.kstep-dot{width:12px;height:12px;border-radius:50%;background:var(--bd2);transition:all .3s;flex-shrink:0}
+.kstep-dot.done{background:var(--gr)}.kstep-dot.cur{background:var(--cy);box-shadow:0 0 10px var(--cy-g)}
+.kstep-line{flex:1;max-width:60px;height:2px;background:var(--bd);transition:background .3s}
+.kstep-line.done{background:var(--gr)}
+.kstep-label{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo);text-align:center;margin-bottom:6px}
+.kstep-title{font-size:30px;font-weight:700;color:var(--tx-b);text-align:center;margin-bottom:28px;line-height:1.1;text-transform:uppercase;letter-spacing:1px}
+.kopts{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.kopts.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kopt{background:var(--bg-card);border:2px solid var(--bd);border-radius:14px;padding:20px;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:14px;position:relative}
+.kopt:hover{border-color:var(--bd2);background:var(--bg-el)}
+.kopt.sel{border-color:var(--cy);background:var(--cy-d);box-shadow:0 0 18px var(--cy-g)}
+.kopt.sel .kopt-name{color:var(--cy)}
+.kopt-ico{font-size:32px;flex-shrink:0;width:48px;text-align:center}
+.kopt-body{flex:1}
+.kopt-name{font-size:18px;font-weight:700;color:var(--tx-b);text-transform:uppercase;letter-spacing:1px;line-height:1.1}
+.kopt-desc{font-size:12px;color:var(--tx-d);margin-top:3px;font-family:var(--mo)}
+.kopt-check{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--cy);display:none;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.kopt.sel .kopt-check{display:flex}
+.kopts.grid2 .kopt{flex-direction:column;align-items:center;text-align:center;padding:18px 12px}
+.kopts.grid2 .kopt-ico{font-size:28px;width:auto}
+.kopts.grid2 .kopt-name{font-size:15px}
+.kopts.grid2 .kopt-desc{font-size:10px}
+.kconfirm{display:flex;flex-direction:column;gap:10px}
+.kconfirm-card{background:var(--bg-card);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+.kc-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--bd)}
+.kc-row:last-child{border-bottom:none}
+.kc-lbl{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--tx-d);font-family:var(--mo)}
+.kc-val{font-size:14px;font-weight:700;color:var(--tx-b)}
+.kc-val.cy{color:var(--cy)}.kc-val.gr{color:var(--gr)}.kc-val.am{color:var(--am)}
+.kinput-wrap{background:var(--bg-card);border:1px solid var(--bd);border-radius:12px;padding:14px 16px}
+.kinput-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo);margin-bottom:7px}
+.kinput{width:100%;background:var(--bg-el);border:1px solid var(--bd);border-radius:8px;padding:11px 12px;color:var(--tx-b);font-family:var(--fn);font-size:15px;outline:none;transition:border-color .2s}
+.kinput:focus{border-color:var(--cy)}
+.kdur-opts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.kdur-opt{padding:7px 12px;background:var(--bg-el);border:1px solid var(--bd);border-radius:7px;color:var(--tx-d);font-family:var(--mo);font-size:12px;cursor:pointer;transition:all .2s}
+.kdur-opt:hover{border-color:var(--bd2);color:var(--tx)}
+.kdur-opt.sel{border-color:var(--cy);color:var(--cy);background:var(--cy-d)}
+.knav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:620px;display:flex;gap:10px;padding:14px 24px;background:linear-gradient(transparent,rgba(244,246,249,.98) 30%);z-index:10}
+.btn-back{flex:1;padding:14px;background:transparent;border:1px solid var(--bd2);border-radius:12px;color:var(--tx-d);font-family:var(--fn);font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-back:hover{border-color:var(--tx-d);color:var(--tx)}
+.btn-next{flex:2;padding:14px;background:var(--cy-d);border:2px solid var(--cy);border-radius:12px;color:var(--cy);font-family:var(--fn);font-size:17px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-next:hover{background:var(--cy);color:#fff;box-shadow:0 0 22px var(--cy-g)}
+.btn-next.confirm{background:var(--gr-d);border-color:var(--gr);color:var(--gr)}
+.btn-next.confirm:hover{background:var(--gr);color:#fff;box-shadow:0 0 22px var(--gr-g)}
+.kiosk-topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.kiosk-logo{font-size:13px;font-weight:700;color:var(--tx-b);letter-spacing:2px;text-transform:uppercase}
+.kiosk-vaga-badge{font-size:11px;font-family:var(--mo);color:var(--cy);background:var(--cy-d);border:1px solid var(--cy);padding:4px 12px;border-radius:6px}
+.btn-kcancel{padding:6px 14px;background:var(--rd-d);border:1px solid var(--rd);border-radius:6px;color:var(--rd);font-family:var(--mo);font-size:10px;cursor:pointer;transition:all .2s}
+.btn-kcancel:hover{background:var(--rd);color:#fff}
+
+/* ── REPORT MODAL ── */
+.rep-overlay{display:none;position:fixed;inset:0;background:rgba(244,246,249,.88);backdrop-filter:blur(6px);z-index:60;align-items:center;justify-content:center}
+.rep-overlay.open{display:flex}
+.rep-modal{background:#ffffff;border:1px solid var(--bd);border-radius:20px;padding:26px;width:420px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.12)}
+.rep-ttl{font-size:18px;font-weight:700;color:var(--tx-b);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.rep-sub{font-size:11px;color:var(--cy);font-family:var(--mo);margin-bottom:18px}
+.rep-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.rep-row{display:flex;justify-content:space-between;font-size:12px;font-family:var(--mo);padding:6px 0;border-bottom:1px solid var(--bd)}
+.rep-row:last-child{border:none}
+.rep-row .k{color:var(--tx-d)}.rep-row .v{color:var(--tx-b);font-weight:600}
+.rep-cost{text-align:center;padding:16px;background:var(--bg-el);border-radius:12px;border:1px solid var(--bd);margin-bottom:18px}
+.rep-cost-lbl{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo)}
+.rep-cost-val{font-size:40px;font-weight:700;color:var(--am);font-family:var(--mo)}
+.btn-repclose{width:100%;padding:13px;background:var(--cy-d);border:1px solid var(--cy);border-radius:10px;color:var(--cy);font-family:var(--fn);font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.btn-repclose:hover{background:var(--cy);color:#fff}
+
+/* ── TOASTS ── */
+.toasts{position:fixed;bottom:22px;right:22px;z-index:200;display:flex;flex-direction:column;gap:7px}
+.toast{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--tx-b);box-shadow:0 4px 14px rgba(0,0,0,.09);animation:slin .3s ease;font-family:var(--mo)}
+.toast.s{border-left:3px solid var(--gr)}.toast.e{border-left:3px solid var(--rd)}.toast.i{border-left:3px solid var(--cy)}.toast.w{border-left:3px solid var(--am)}
+@keyframes slin{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-title">ChargeGrid Intelligence</div>
+      <div class="logo-sub">EV Challenge 2026 · GoodWe · FIAP 1CCPY</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-badge live" id="statusBadge"><span class="live-dot"></span><span id="statusTxt">SISTEMA ATIVO</span></div>
+    <div class="clock" id="clock">00:00:00</div>
+    <a href="/kanban" class="btn-sim" style="text-decoration:none">📋 Kanban</a>
+    <button class="btn-sim" onclick="simularAuto()">⟳ Simular 6 Veículos</button>
+  </div>
+</header>
+
+<!-- ══ METRICS BAR ══ -->
+<div class="metrics-bar">
+  <div class="mc">
+    <div class="mc-label">Demanda atual</div>
+    <div class="mc-value" id="mc-demanda">0.0 kW</div>
+    <div class="mc-sub">Limite: <span id="mc-limite">80 kW</span> contratado</div>
+  </div>
+  <div class="mc cy">
+    <div class="mc-label">Sessões ativas</div>
+    <div class="mc-value" id="mc-sessoes">0</div>
+    <div class="mc-sub">de 6 carregadores</div>
+  </div>
+  <div class="mc am">
+    <div class="mc-label">Faturamento</div>
+    <div class="mc-value" id="mc-fat">R$ 0,00</div>
+    <div class="mc-sub" id="mc-fat-sub">Tarifa: R$ 0,850/kWh</div>
+  </div>
+  <div class="mc gr">
+    <div class="mc-label">Fonte renovável</div>
+    <div class="mc-value" id="mc-solar">0%</div>
+    <div class="mc-sub">Solar + Bateria GoodWe</div>
+  </div>
+</div>
+
+<!-- ══ PEAK SHAVING ALERT ══ -->
+<div class="ps-alert" id="psAlert">
+  <span class="ps-alert-icon">⚡</span>
+  <span class="ps-alert-txt"><strong>Peak shaving ativo via OCPP</strong> — Demanda acima de 90% do limite. Potência dos carregadores redistribuída automaticamente para evitar multa contratual.</span>
+</div>
+
+<!-- ══ BODY LAYOUT ══ -->
+<div class="body-layout">
+
+  <!-- ═══ MAIN LEFT ═══ -->
+  <div class="body-main">
+
+    <!-- DEMAND CHART -->
+    <div class="chart-wrap">
+      <div class="sec-hdr">
+        <span class="sec-title">Monitoramento de demanda — MODBUS / tempo real</span>
+        <span class="sec-tag">Atualiza a cada segundo</span>
+      </div>
+      <div class="chart-legend">
+        <div class="cl-item"><div class="cl-dot" style="background:#0070cc"></div>Demanda (kW)</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#d32f2f;border-top:2px dashed #d32f2f;height:0;width:22px"></div>Limite 80 kW</div>
+        <div class="cl-item"><div class="cl-dot" style="background:transparent;border-top:2px dashed #e07b00;height:0;width:22px"></div>Peak shaving 72 kW</div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="demandChart" role="img" aria-label="Gráfico de demanda elétrica em tempo real, mostrando consumo em kW nos últimos 40 segundos com linhas de limite contratado e threshold de peak shaving">Consumo de demanda elétrica em tempo real.</canvas>
+      </div>
+    </div>
+
+    <!-- VAGAS GRID -->
+    <div>
+      <div class="sec-hdr">
+        <span class="sec-title">Carregadores — Protocolo OCPP 1.6</span>
+        <span class="sec-tag">6 pontos · GoodWe HCA G2</span>
+      </div>
+      <div class="vagas" id="vagas"></div>
+    </div>
+
+    <!-- DEMAND ROW -->
+    <div class="demand-row">
+      <span class="d-lbl">Demanda total</span>
+      <span class="d-val" id="d-val">0.0 kW</span>
+      <div class="d-track"><div class="d-fill" id="d-fill" style="width:0%"></div></div>
+      <span class="d-pct" id="d-pct">0%</span>
+      <span class="d-vagas" id="d-vagas">0 / 6 vagas</span>
+      <span class="d-tarifa" id="d-tarifa">R$ 0,850/kWh</span>
+      <button class="btn-admin" onclick="toggleAdmin()">▼ Console OCPP</button>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="admin" id="admin" style="display:none">
+      <div class="atabs">
+        <div class="atab on" onclick="switchAtab('log')">Console OCPP / MODBUS</div>
+        <div class="atab" onclick="switchAtab('hist')">Histórico de Sessões</div>
+      </div>
+      <div class="atbody on" id="atb-log"><div class="console" id="console"></div></div>
+      <div class="atbody" id="atb-hist"><div id="hist-content"></div></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ SIDE RIGHT ═══ -->
+  <div class="body-side">
+
+    <!-- AI PANEL -->
+    <div class="side-card">
+      <div class="sec-hdr" style="margin-bottom:10px">
+        <span class="sec-title">Inteligência Artificial</span>
+        <span class="sec-tag">Preditivo</span>
+      </div>
+      <div id="ai-status-box" class="ai-status ok">✓ Operação normal</div>
+      <div id="ai-recs"></div>
+    </div>
+
+    <!-- TARIFF PANEL -->
+    <div class="side-card">
+      <div class="sec-hdr" style="margin-bottom:10px">
+        <span class="sec-title">Tarifação dinâmica</span>
+      </div>
+      <div class="tariff-tabs">
+        <button class="tt on" onclick="setTarifa('pico')">Pico</button>
+        <button class="tt" onclick="setTarifa('fora')">Fora-pico</button>
+        <button class="tt" onclick="setTarifa('solar')">Solar</button>
+      </div>
+      <div id="tariff-box" class="tariff-box"></div>
+    </div>
+
+    <!-- ENERGY MIX -->
+    <div class="side-card">
+      <div class="sec-hdr" style="margin-bottom:10px">
+        <span class="sec-title">Mix energético — IA</span>
+        <span class="sec-tag">Solar → Bat → Rede</span>
+      </div>
+      <div class="energy-row">
+        <span class="energy-ico">☀</span>
+        <span class="energy-name" style="color:var(--gr)">Solar</span>
+        <div class="energy-bar-wrap"><div class="energy-bar" id="bar-solar" style="background:var(--gr);width:0%"></div></div>
+        <span class="energy-kw" id="kw-solar" style="color:var(--gr)">0 kW</span>
+      </div>
+      <div class="energy-row">
+        <span class="energy-ico">🔋</span>
+        <span class="energy-name" style="color:var(--cy)">Bateria</span>
+        <div class="energy-bar-wrap"><div class="energy-bar" id="bar-bat" style="background:var(--cy);width:0%"></div></div>
+        <span class="energy-kw" id="kw-bat" style="color:var(--cy)">0 kW</span>
+      </div>
+      <div class="energy-row">
+        <span class="energy-ico">⚡</span>
+        <span class="energy-name" style="color:var(--tx-d)">Rede elétrica</span>
+        <div class="energy-bar-wrap"><div class="energy-bar" id="bar-rede" style="background:var(--tx-d);width:0%"></div></div>
+        <span class="energy-kw" id="kw-rede" style="color:var(--tx-d)">0 kW</span>
+      </div>
+    </div>
+
+    <!-- BILLING -->
+    <div class="side-card">
+      <div class="sec-hdr" style="margin-bottom:10px">
+        <span class="sec-title">Faturamento</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-lbl">kWh entregue</span>
+        <span class="bill-val" id="bill-kwh">0,000 kWh</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-lbl">Sessões concluídas</span>
+        <span class="bill-val" id="bill-sess">0</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-lbl">Tarifa ativa</span>
+        <span class="bill-val" id="bill-tar">R$ 0,850/kWh</span>
+      </div>
+      <div class="bill-row">
+        <span class="bill-lbl">Receita total</span>
+        <span class="bill-val big" id="bill-total">R$ 0,00</span>
+      </div>
+    </div>
+
+    <!-- PROTOCOLS -->
+    <div style="text-align:center;padding:10px 0">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--tx-m);font-family:var(--mo);line-height:2">
+        Protocolos: OCPP 1.6 · MODBUS TCP · MQTT<br>
+        Pagamento: Pix · Cartão · Débito<br>
+        Sprint 2 · GoodWe EV Challenge · FIAP 2026
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ KIOSK FLOW ══ -->
+<div class="kiosk-overlay" id="kiosk">
+  <div class="kiosk-inner">
+    <div class="kiosk-topbar">
+      <span class="kiosk-logo">⚡ ChargeGrid</span>
+      <span class="kiosk-vaga-badge" id="k-vaga-badge">Vaga 1</span>
+      <button class="btn-kcancel" onclick="fecharKiosk()">✕ Cancelar</button>
+    </div>
+    <div class="ksteps" id="k-dots"></div>
+    <div class="kstep-label" id="k-step-lbl">Etapa 1 de 4</div>
+    <div class="kstep-title" id="k-step-ttl"></div>
+    <div id="k-body"></div>
+  </div>
+  <div class="knav">
+    <button class="btn-back" onclick="kPrev()">← Voltar</button>
+    <button class="btn-next" id="k-next" onclick="kNext()">Próximo →</button>
+  </div>
+</div>
+
+<!-- ══ RELATÓRIO ══ -->
+<div class="rep-overlay" id="rep-overlay">
+  <div class="rep-modal">
+    <div class="rep-ttl">Sessão Encerrada</div>
+    <div class="rep-sub" id="rep-sub"></div>
+    <div class="rep-cost">
+      <div class="rep-cost-lbl">Total a pagar</div>
+      <div class="rep-cost-val" id="rep-val"></div>
+    </div>
+    <div class="rep-rows" id="rep-rows"></div>
+    <button class="btn-repclose" onclick="document.getElementById('rep-overlay').classList.remove('open')">✓ Fechar Comprovante</button>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ═══════════════════════════════════════════════════
+// CONSTANTES E ESTADO
+// ═══════════════════════════════════════════════════
+const PMAX = 80.0;          // Limite de demanda contratada (kW)
+const PS_THRESHOLD = 0.90;  // Peak shaving a 90% = 72 kW
+const NVAGAS = 6;
+const MAX_PTS = 40;
+
+let S = { vagas:{1:null,2:null,3:null,4:null,5:null,6:null}, hist:[], logs:[], txN:1000 };
+let F = { vaga:null, step:0, rec:null, tar:null, pag:null, nome:'', dur:30 };
+let adminOpen = false;
+let billingTotal = 0;
+let kwhTotal = 0;
+let sessoesCompletas = 0;
+let tarifaMode = 'pico';
+let demandHistory = Array(MAX_PTS).fill(0);
+let tick = 0;
+
+const TARIFAS = {
+  pico:  { valor:1.20, label:'Horário de ponta', horario:'18h–21h', desc:'Tarifa máxima. IA prioriza bateria e solar para reduzir custo.', color:'var(--rd)' },
+  fora:  { valor:0.85, label:'Fora de ponta',    horario:'demais',  desc:'Tarifa padrão. Recarga normal sem restrições adicionais.', color:'var(--cy)' },
+  solar: { valor:0.38, label:'Energia solar',    horario:'6h–18h',  desc:'Menor custo. IA direciona 100% da solar antes de usar a rede.', color:'var(--gr)' },
+};
+
+// ═══════════════════════════════════════════════════
+// SESSÃO
+// ═══════════════════════════════════════════════════
+function newSessao(idV,nome,rec,tar,pag,hora,min){
+  S.txN++;
+  const potBase = rec==2 ? 22.0 : 7.4;
+  const nomeRec = rec==2 ? 'Rápida (22 kW)' : 'Normal (7.4 kW)';
+  const hora6_18 = hora>=6 && hora<18;
+  const horaPonta = hora>=18 && hora<21;
+  const fonte = hora6_18 ? 'Solar' : horaPonta ? 'Bateria' : 'Rede elétrica';
+  const tarifaBase = horaPonta ? 1.20 : 0.85;
+  const periodo = horaPonta ? 'Horário de ponta (R$ 1,20/kWh)' : 'Fora de ponta (R$ 0,85/kWh)';
+  const nomTar = {1:'Padrão',2:'Funcionário',3:'Visitante'}[tar] || 'Padrão';
+  const nomPag = {1:'Pix',2:'Cartão de Crédito',3:'Cartão de Débito'}[pag] || 'Pix';
+  return { idTx:S.txN, idV, nome, rec, tar, pag, hora, min, potBase, potAtual:potBase,
+           nomeRec, fonte, tarifaBase, periodo, nomTar, nomPag, energia:0, custo:0, desconto:0, dur:0 };
+}
+
+// ═══════════════════════════════════════════════════
+// DEMANDA E PEAK SHAVING
+// ═══════════════════════════════════════════════════
+function potEmUso(){
+  return Object.values(S.vagas).filter(s=>s).reduce((a,s)=>a+s.potAtual,0);
+}
+
+function redistribuir(){
+  const at = Object.values(S.vagas).filter(s=>s);
+  if(!at.length) return;
+  const uso = at.reduce((a,s)=>a+s.potBase,0);
+  const psAtivo = uso > PMAX * PS_THRESHOLD;
+  if(psAtivo){
+    const lim = (PMAX * PS_THRESHOLD) / at.length;
+    at.forEach(s=>{ s.potAtual = Math.round(Math.min(s.potBase,lim)*10)/10; s.psAtivo = true; });
+    document.getElementById('psAlert').classList.add('show');
+    document.getElementById('statusBadge').className = 'hdr-badge ps';
+    document.getElementById('statusTxt').textContent = 'PEAK SHAVING';
+    lSys('⚡ Peak shaving ativado — potência redistribuída entre ' + at.length + ' vagas.');
+  } else {
+    at.forEach(s=>{ s.potAtual = s.potBase; s.psAtivo = false; });
+    document.getElementById('psAlert').classList.remove('show');
+    document.getElementById('statusBadge').className = 'hdr-badge live';
+    document.getElementById('statusTxt').textContent = 'SISTEMA ATIVO';
+  }
+}
+
+function tarifaEf(hora){
+  let t = (hora>=18 && hora<21) ? 1.20 : 0.85;
+  const n = Object.values(S.vagas).filter(s=>s).length;
+  if(n>=5) t = Math.round(t*1.20*1000)/1000;
+  else if(n>=3) t = Math.round(t*1.10*1000)/1000;
+  return t;
+}
+
+function simConsumo(s,dur,te){
+  s.dur = dur;
+  let e = 0;
+  for(let i=0;i<dur;i++) e += (s.potAtual*(0.95+Math.random()*.10))/60;
+  s.energia = Math.round(e*1000)/1000;
+  let c = s.energia * te;
+  if(s.tar==2){ s.desconto = Math.round(c*.20*100)/100; c -= s.desconto; }
+  s.custo = Math.round(c*100)/100;
+}
+
+// ═══════════════════════════════════════════════════
+// LOGS OCPP / MODBUS
+// ═══════════════════════════════════════════════════
+function addLog(t,m){
+  const ts = new Date().toLocaleTimeString('pt-BR',{hour12:false});
+  S.logs.unshift({ts,t,m}); if(S.logs.length>100) S.logs.pop();
+}
+function lBoot(){ addLog('co','BootNotification → charger:CGI-FIAP-001 | vendor:GoodWe | model:ChargeGrid-G2 | fw:2.0.1'); addLog('ci','BootNotification ← Status:Accepted | Interval:300s'); }
+function lStart(s){ addLog('co',`StartTransaction → vaga:${s.idV} | idTag:${s.nome.replace(/\s/g,'_').toUpperCase()} | txId:${s.idTx}`); addLog('ci',`StartTransaction ← txId:${s.idTx} | Status:Accepted`); }
+function lMeter(s){ addLog('co',`MeterValues → vaga:${s.idV} | txId:${s.idTx} | energy:${s.energia.toFixed(3)} kWh | power:${s.potAtual.toFixed(1)} kW`); }
+function lStop(s){ addLog('co',`StopTransaction → txId:${s.idTx} | meterStop:${s.energia.toFixed(3)} kWh`); addLog('ci',`StopTransaction ← Status:Accepted`); }
+function lModbus(s){ const rp=Math.round(s.potAtual*10),re=Math.round(s.energia*100),rc=Math.round(s.potAtual*1000/220*10); addLog('mb',`Vaga${s.idV} | 40001:${rp}(Pot×10) | 40002:${re}(Ene×100) | 40003:2270(V×10) | 40004:${rc}(A×10)`); }
+function lSys(m){ addLog('sy',m); }
+function lAI(m){ addLog('ai',m); }
+
+// ═══════════════════════════════════════════════════
+// OPERAÇÕES
+// ═══════════════════════════════════════════════════
+function iniciar(idV,nome,rec,tar,pag,hora,min,dur){
+  if(S.vagas[idV]){ toast('Vaga já ocupada.','e'); return; }
+  const s = newSessao(idV,nome,rec,tar,pag,hora,min);
+  S.vagas[idV] = s; redistribuir();
+  const te = tarifaEf(hora); simConsumo(s,dur,te);
+  lStart(s); lMeter(s); lModbus(s);
+  const n = Object.values(S.vagas).filter(x=>x).length;
+  if(n>1) lSys(`Controle de demanda ativo — ${n} vagas em uso. Potência redistribuída.`);
+  lSys(`Sessão #${s.idTx} | Vaga ${idV} | ${s.potAtual} kW | R$${te.toFixed(3)}/kWh | Fonte: ${s.fonte}`);
+  billingTotal += s.custo;
+  kwhTotal += s.energia;
+  toast(`✔ Sessão #${s.idTx} iniciada — Vaga ${idV}`,'s');
+  render();
+}
+
+function encerrar(idV){
+  const s = S.vagas[idV]; if(!s) return;
+  S.vagas[idV] = null; S.hist.unshift(s); redistribuir();
+  lStop(s); lSys(`Sessão #${s.idTx} encerrada. Energia:${s.energia} kWh | Custo:R$${s.custo.toFixed(2)}`);
+  sessoesCompletas++;
+  mostrarRelatorio(s);
+  toast(`Sessão #${s.idTx} encerrada — R$ ${s.custo.toFixed(2)}`,'i');
+  render();
+}
+
+// ═══════════════════════════════════════════════════
+// SIMULAÇÃO AUTO
+// ═══════════════════════════════════════════════════
+function simularAuto(){
+  for(let i=1;i<=6;i++) S.vagas[i]=null;
+  billingTotal=0; kwhTotal=0;
+  lSys('═══ SIMULAÇÃO AUTOMÁTICA — 6 Veículos ═══');
+  lAI('IA: Iniciando orquestração de energia para 6 sessões simultâneas.');
+  const now=new Date(), h=now.getHours(), m=now.getMinutes();
+  const veiculos=[
+    {nome:'Tesla Model 3',    rec:2,tar:1,pag:1,hora:h,min:m,       dur:30},
+    {nome:'VW ID.4',          rec:1,tar:2,pag:2,hora:h,min:(m+2)%60,dur:45},
+    {nome:'Hyundai IONIQ 5',  rec:2,tar:3,pag:1,hora:h,min:(m+4)%60,dur:20},
+    {nome:'BYD Dolphin',      rec:1,tar:1,pag:3,hora:h,min:(m+6)%60,dur:60},
+    {nome:'Fiat 500e',        rec:2,tar:2,pag:1,hora:h,min:(m+8)%60,dur:35},
+    {nome:'Chevrolet Bolt',   rec:1,tar:1,pag:2,hora:h,min:(m+10)%60,dur:50},
+  ];
+  veiculos.forEach((v,i)=>iniciar(i+1,v.nome,v.rec,v.tar,v.pag,v.hora,v.min,v.dur));
+  if(adminOpen) renderAdmin();
+}
+
+// ═══════════════════════════════════════════════════
+// CHART.JS — DEMANDA EM TEMPO REAL
+// ═══════════════════════════════════════════════════
+let chart;
+function initChart(){
+  const ctx = document.getElementById('demandChart').getContext('2d');
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels: Array(MAX_PTS).fill(''),
+      datasets:[
+        { label:'Demanda (kW)', data:[...demandHistory], borderColor:'#0070cc', backgroundColor:'rgba(0,112,204,.07)', borderWidth:2, pointRadius:0, fill:true, tension:.4 },
+        { label:'Limite 80 kW', data:Array(MAX_PTS).fill(PMAX), borderColor:'#d32f2f', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false },
+        { label:'Peak shaving 72 kW', data:Array(MAX_PTS).fill(PMAX*PS_THRESHOLD), borderColor:'#e07b00', borderWidth:1.5, borderDash:[3,3], pointRadius:0, fill:false },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      animation:{ duration:350 },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ mode:'index', intersect:false, backgroundColor:'#fff', borderColor:'#d1dbe8', borderWidth:1, titleColor:'#9baebb', bodyColor:'#2c3e50',
+          callbacks:{ label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.raw)} kW` } }
+      },
+      scales:{
+        x:{ display:false },
+        y:{ min:0, max:100, grid:{ color:'rgba(0,0,0,.05)' },
+            ticks:{ color:'#9baebb', font:{size:10, family:'JetBrains Mono'}, callback: v=>v+' kW' } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// PAINEL DE IA
+// ═══════════════════════════════════════════════════
+function updateAI(demand){
+  const pct = demand / PMAX;
+  const recs = [];
+  let statusClass, statusTxt;
+
+  if(pct > 0.95){
+    statusClass='crit'; statusTxt='⚠ Demanda crítica — peak shaving máximo';
+    recs.push({c:'var(--rd)',t:'Reduzir 2 sessões de recarga rápida imediatamente'});
+    lAI('IA: Demanda crítica. Recomendando redução de carga imediata.');
+  } else if(pct > 0.90){
+    statusClass='warn'; statusTxt='⚡ Peak shaving ativo';
+    recs.push({c:'var(--am)',t:'Peak shaving em operação. Monitorando redistribuição OCPP.'});
+  } else if(pct > 0.75){
+    statusClass='warn'; statusTxt='! Demanda elevada';
+    recs.push({c:'var(--am)',t:'Acionar bateria GoodWe preventivamente antes de atingir 90%'});
+  } else {
+    statusClass='ok'; statusTxt='✓ Operação normal';
+    recs.push({c:'var(--gr)',t:'Demanda dentro do limite. Nenhuma ação necessária.'});
+  }
+
+  const h = new Date().getHours();
+  if(h>=6 && h<18) recs.push({c:'var(--gr)',t:`Solar disponível — ${Math.round((1-(demand/PMAX))*28)} kW excedente. IA orquestrando prioridade solar.`});
+  else if(h>=18 && h<21) recs.push({c:'var(--am)',t:'Horário de ponta ativo — tarifa R$ 1,20/kWh. Usando bateria para reduzir custo.'});
+  else recs.push({c:'var(--cy)',t:'Fora de ponta — tarifa reduzida. Ideal para agendar recargas longas.'});
+
+  const n = Object.values(S.vagas).filter(s=>s).length;
+  recs.push({c:'var(--pu)',t:`OCPP: ${n}/6 carregadores ativos · MODBUS OK · MQTT latência <18ms`});
+
+  document.getElementById('ai-status-box').className = 'ai-status ' + statusClass;
+  document.getElementById('ai-status-box').textContent = statusTxt;
+  document.getElementById('ai-recs').innerHTML = recs.map(r=>`
+    <div class="ai-rec">
+      <div class="ai-rec-dot" style="background:${r.c}"></div>
+      <div class="ai-rec-txt">${r.t}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// TARIFAÇÃO DINÂMICA (painel lateral)
+// ═══════════════════════════════════════════════════
+function setTarifa(mode){
+  tarifaMode = mode;
+  document.querySelectorAll('.tt').forEach((b,i)=>b.classList.toggle('on',['pico','fora','solar'][i]===mode));
+  const t = TARIFAS[mode];
+  document.getElementById('tariff-box').innerHTML = `
+    <div style="margin-bottom:6px">
+      <span class="tariff-price" style="color:${t.color}">R$ ${t.valor.toFixed(2)}</span>
+      <span class="tariff-unit"> / kWh</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--tx-b);font-family:var(--mo);margin-bottom:4px">${t.label} · ${t.horario}</div>
+    <div class="tariff-desc">${t.desc}</div>`;
+}
+setTarifa('pico');
+
+// ═══════════════════════════════════════════════════
+// MIX DE ENERGIA
+// ═══════════════════════════════════════════════════
+function updateEnergy(demand){
+  const h = new Date().getHours();
+  const solarMax = 28;
+  const solar = Math.max(0, Math.round(solarMax * Math.sin(Math.PI*(h-6)/12) + (Math.random()-.5)*3));
+  const bat = Math.max(0, Math.min(20, demand>60 ? 18 : 10 + (Math.random()-.5)*4));
+  const rede = Math.max(0, demand - solar - bat);
+  const total = Math.max(1, solar+bat+rede);
+  const renPct = Math.round(((solar+bat)/total)*100);
+
+  document.getElementById('bar-solar').style.width = Math.round((solar/total)*100)+'%';
+  document.getElementById('bar-bat').style.width   = Math.round((bat/total)*100)+'%';
+  document.getElementById('bar-rede').style.width  = Math.round((rede/total)*100)+'%';
+  document.getElementById('kw-solar').textContent  = solar+' kW';
+  document.getElementById('kw-bat').textContent    = bat+' kW';
+  document.getElementById('kw-rede').textContent   = rede+' kW';
+  document.getElementById('mc-solar').textContent  = renPct+'%';
+}
+
+// ═══════════════════════════════════════════════════
+// LOOP DE TEMPO REAL
+// ═══════════════════════════════════════════════════
+function realtimeTick(){
+  tick++;
+  const uso = potEmUso();
+  const noise = (Math.random()-.5)*4;
+  const demand = Math.max(0, Math.round((uso + noise)*10)/10);
+
+  demandHistory.push(demand);
+  demandHistory.shift();
+  if(chart){ chart.data.datasets[0].data = [...demandHistory]; chart.update('none'); }
+
+  // Billing acumulado em tempo real
+  const tarifaAtual = tarifaEf(new Date().getHours());
+  const deltaKwh = demand / 3600;
+  kwhTotal += deltaKwh;
+
+  updateEnergy(demand);
+  if(tick % 5 === 0) updateAI(demand);
+
+  const n = Object.values(S.vagas).filter(s=>s).length;
+  document.getElementById('mc-demanda').textContent  = demand.toFixed(1)+' kW';
+  document.getElementById('mc-sessoes').textContent  = n;
+  document.getElementById('mc-fat').textContent      = 'R$ '+billingTotal.toFixed(2);
+  document.getElementById('mc-fat-sub').textContent  = 'Tarifa: R$ '+tarifaAtual.toFixed(3)+'/kWh';
+  document.getElementById('bill-kwh').textContent    = kwhTotal.toFixed(3)+' kWh';
+  document.getElementById('bill-sess').textContent   = sessoesCompletas;
+  document.getElementById('bill-tar').textContent    = 'R$ '+tarifaAtual.toFixed(3)+'/kWh';
+  document.getElementById('bill-total').textContent  = 'R$ '+billingTotal.toFixed(2);
+}
+
+// ═══════════════════════════════════════════════════
+// KIOSK FLOW
+// ═══════════════════════════════════════════════════
+function abrirKiosk(idV){
+  F = {vaga:idV,step:0,rec:null,tar:null,pag:null,nome:'',dur:30};
+  document.getElementById('k-vaga-badge').textContent = `Vaga ${idV}`;
+  renderKiosk();
+  document.getElementById('kiosk').classList.add('open');
+}
+function fecharKiosk(){ document.getElementById('kiosk').classList.remove('open'); }
+
+function kNext(){
+  if(F.step===0&&!F.rec){ toast('Selecione o tipo de recarga.','e'); return; }
+  if(F.step===1&&!F.tar){ toast('Selecione a tarifa.','e'); return; }
+  if(F.step===2&&!F.pag){ toast('Selecione o pagamento.','e'); return; }
+  if(F.step===3){ confirmarSessao(); return; }
+  F.step++; renderKiosk();
+}
+function kPrev(){ if(F.step===0){ fecharKiosk(); return; } F.step--; renderKiosk(); }
+
+function confirmarSessao(){
+  const nome = F.nome.trim() || `Veículo — Vaga ${F.vaga}`;
+  const now = new Date();
+  fecharKiosk();
+  iniciar(F.vaga,nome,F.rec,F.tar,F.pag,now.getHours(),now.getMinutes(),F.dur);
+}
+
+const STEP_TITLES = ['Tipo de Recarga','Sua Tarifa','Pagamento','Confirmar'];
+
+function renderKiosk(){
+  const dots = document.getElementById('k-dots');
+  dots.innerHTML = '';
+  for(let i=0;i<4;i++){
+    if(i>0) dots.innerHTML += `<div class="kstep-line${i<=F.step?' done':''}"></div>`;
+    dots.innerHTML += `<div class="kstep-dot${i<F.step?' done':i===F.step?' cur':''}"></div>`;
+  }
+  document.getElementById('k-step-lbl').textContent = `Etapa ${F.step+1} de 4`;
+  document.getElementById('k-step-ttl').textContent = STEP_TITLES[F.step];
+  const nb = document.getElementById('k-next');
+  nb.className = 'btn-next'+(F.step===3?' confirm':'');
+  nb.textContent = F.step===3 ? '⚡ Confirmar e Iniciar' : 'Próximo →';
+  const body = document.getElementById('k-body');
+  if(F.step===0) body.innerHTML = stepRec();
+  else if(F.step===1) body.innerHTML = stepTar();
+  else if(F.step===2) body.innerHTML = stepPag();
+  else body.innerHTML = stepConfirm();
+}
+
+function stepRec(){
+  return`<div class="kopts grid2">
+    <div class="kopt${F.rec==1?' sel':''}" onclick="F.rec=1;renderKiosk()">
+      <div class="kopt-check">✓</div><div class="kopt-ico">⚡</div>
+      <div class="kopt-body"><div class="kopt-name">Normal</div><div class="kopt-desc">7.4 kW · Paradas longas</div></div>
+    </div>
+    <div class="kopt${F.rec==2?' sel':''}" onclick="F.rec=2;renderKiosk()">
+      <div class="kopt-check">✓</div><div class="kopt-ico">⚡⚡</div>
+      <div class="kopt-body"><div class="kopt-name">Rápida</div><div class="kopt-desc">22 kW · Máx. velocidade</div></div>
+    </div>
+  </div>`;
+}
+
+function stepTar(){
+  return`<div class="kopts">${[{v:1,ico:'⭐',n:'Padrão',d:'Tarifa regular'},{v:2,ico:'🏷',n:'Funcionário',d:'20% de desconto'},{v:3,ico:'🪪',n:'Visitante',d:'Tarifa visitante'}].map(o=>`
+    <div class="kopt${F.tar==o.v?' sel':''}" onclick="F.tar=${o.v};renderKiosk()">
+      <div class="kopt-check">✓</div><div class="kopt-ico">${o.ico}</div>
+      <div class="kopt-body"><div class="kopt-name">${o.n}</div><div class="kopt-desc">${o.d}</div></div>
+    </div>`).join('')}</div>`;
+}
+
+function stepPag(){
+  return`<div class="kopts">${[{v:1,ico:'📲',n:'Pix',d:'Instantâneo, sem taxas'},{v:2,ico:'💳',n:'Crédito',d:'Cartão de crédito'},{v:3,ico:'💳',n:'Débito',d:'Cartão de débito'}].map(o=>`
+    <div class="kopt${F.pag==o.v?' sel':''}" onclick="F.pag=${o.v};renderKiosk()">
+      <div class="kopt-check">✓</div><div class="kopt-ico">${o.ico}</div>
+      <div class="kopt-body"><div class="kopt-name">${o.n}</div><div class="kopt-desc">${o.d}</div></div>
+    </div>`).join('')}</div>`;
+}
+
+function stepConfirm(){
+  const now=new Date(), hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+  const nomTar={1:'Padrão',2:'Funcionário (20% desc.)',3:'Visitante'}[F.tar];
+  const nomPag={1:'Pix',2:'Cartão de Crédito',3:'Cartão de Débito'}[F.pag];
+  const nomRec=F.rec==2?'Rápida — 22 kW':'Normal — 7.4 kW';
+  const te=tarifaEf(now.getHours());
+  const potBase=F.rec==2?22.0:7.4;
+  const nAtivas=Object.values(S.vagas).filter(s=>s).length+1;
+  const potReal=Math.round(Math.min(potBase,(PMAX*PS_THRESHOLD)/nAtivas)*10)/10;
+  const estCusto=(potReal/60*F.dur*te*(F.tar==2?0.8:1)).toFixed(2);
+  const durs=[15,30,45,60,90,120];
+  return`<div class="kconfirm">
+    <div class="kinput-wrap">
+      <div class="kinput-lbl">Identificação (opcional)</div>
+      <input class="kinput" id="k-nome" placeholder="Seu nome ou modelo do veículo" value="${F.nome}" oninput="F.nome=this.value">
+    </div>
+    <div class="kinput-wrap">
+      <div class="kinput-lbl">Duração da Recarga</div>
+      <div class="kdur-opts">${durs.map(d=>`<div class="kdur-opt${F.dur==d?' sel':''}" onclick="F.dur=${d};renderKiosk()">${d} min</div>`).join('')}</div>
+    </div>
+    <div class="kconfirm-card">
+      <div class="kc-row"><span class="kc-lbl">Vaga</span><span class="kc-val cy">Vaga ${F.vaga}</span></div>
+      <div class="kc-row"><span class="kc-lbl">Recarga</span><span class="kc-val">${nomRec}</span></div>
+      <div class="kc-row"><span class="kc-lbl">Potência real</span><span class="kc-val gr">${potReal} kW</span></div>
+      <div class="kc-row"><span class="kc-lbl">Início</span><span class="kc-val cy">${hh}:${mm} (agora)</span></div>
+      <div class="kc-row"><span class="kc-lbl">Duração</span><span class="kc-val">${F.dur} minutos</span></div>
+      <div class="kc-row"><span class="kc-lbl">Tarifa</span><span class="kc-val">${nomTar}</span></div>
+      <div class="kc-row"><span class="kc-lbl">Pagamento</span><span class="kc-val">${nomPag}</span></div>
+      <div class="kc-row"><span class="kc-lbl">Custo estimado</span><span class="kc-val am">R$ ${estCusto}</span></div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// RELATÓRIO
+// ═══════════════════════════════════════════════════
+function mostrarRelatorio(s){
+  const fim=s.hora*60+s.min+s.dur, hf=Math.floor(fim/60)%24, mf=fim%60;
+  document.getElementById('rep-sub').textContent = `Sessão #${s.idTx} · Vaga ${s.idV}`;
+  document.getElementById('rep-val').textContent = `R$ ${s.custo.toFixed(2)}`;
+  document.getElementById('rep-rows').innerHTML = [
+    ['Usuário',s.nome],['Início',`${String(s.hora).padStart(2,'0')}:${String(s.min).padStart(2,'0')}`],
+    ['Término',`${String(hf).padStart(2,'0')}:${String(mf).padStart(2,'0')}`],['Duração',`${s.dur} min`],
+    ['Recarga',s.nomeRec],['Potência',`${s.potAtual.toFixed(1)} kW`],['Energia',`${s.energia.toFixed(3)} kWh`],
+    ['Fonte',s.fonte],['Período tarifário',s.periodo],['Tarifa',s.nomTar],['Pagamento',s.nomPag],
+    ...(s.desconto>0?[['Desconto',`- R$ ${s.desconto.toFixed(2)}`]]:[]),
+  ].map(([k,v])=>`<div class="rep-row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  document.getElementById('rep-overlay').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER HOME / ADMIN
+// ═══════════════════════════════════════════════════
+function fonteTag(f){
+  const m={'Solar':'s','Bateria':'b','Rede elétrica':'r'}, i={'Solar':'☀','Bateria':'🔋','Rede elétrica':'⚡'};
+  return `<span class="vtag vtag-${m[f]||'n'}">${i[f]||''} ${f}</span>`;
+}
+
+function cardVaga(idV){
+  const s = S.vagas[idV];
+  if(!s) return `<div class="vc" onclick="abrirKiosk(${idV})">
+    <div class="vc-hdr"><span class="vc-num">VAGA 0${idV}</span><span class="dot"></span></div>
+    <div class="vc-livre"><div class="vc-livre-ico">⚡</div><div class="vc-livre-txt">Disponível</div></div>
+    <button class="vc-btn">⚡ Iniciar Recarga</button>
+  </div>`;
+
+  const psClass = s.psAtivo ? ' ps-on' : ' ativa';
+  return `<div class="vc${psClass}">
+    <div class="vc-hdr"><span class="vc-num">VAGA 0${idV}</span><span class="dot ${s.psAtivo?'ps':'on'}"></span></div>
+    <div>
+      <div class="vc-nome">${s.nome}</div>
+      <div class="vc-rec">${s.nomeRec}</div>
+      ${s.psAtivo?`<div class="vc-ps-badge">⚡ PEAK SHAVING</div>`:''}
+      <div class="vc-stats">
+        <div class="vstat"><div class="vstat-lbl">Potência</div><div class="vstat-val ${s.psAtivo?'am':'gr'}">${s.potAtual.toFixed(1)} kW</div></div>
+        <div class="vstat"><div class="vstat-lbl">Energia</div><div class="vstat-val cy">${s.energia.toFixed(3)} kWh</div></div>
+        <div class="vstat"><div class="vstat-lbl">Custo</div><div class="vstat-val am">R$ ${s.custo.toFixed(2)}</div></div>
+        <div class="vstat"><div class="vstat-lbl">Término</div>
+          <div class="vstat-val">${String(Math.floor((s.hora*60+s.min+s.dur)/60)%24).padStart(2,'0')}:${String((s.hora*60+s.min+s.dur)%60).padStart(2,'0')}</div>
+        </div>
+      </div>
+      <div class="vc-tags">${fonteTag(s.fonte)}<span class="vtag vtag-n">${s.nomTar}</span><span class="vtag vtag-n">${s.nomPag}</span></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:auto">
+      <button class="btn-rep" onclick="mostrarRelatorio(S.vagas[${idV}])">📋 Relatório</button>
+      <button class="btn-stop" style="flex:2" onclick="encerrar(${idV})">■ Encerrar</button>
+    </div>
+  </div>`;
+}
+
+function render(){
+  document.getElementById('vagas').innerHTML = [1,2,3,4,5,6].map(cardVaga).join('');
+  const uso=potEmUso(), pct=Math.round(uso/PMAX*100);
+  const n=Object.values(S.vagas).filter(s=>s).length;
+  const te=tarifaEf(new Date().getHours());
+  document.getElementById('d-val').textContent   = `${uso.toFixed(1)} kW`;
+  document.getElementById('d-fill').style.width  = `${Math.min(pct,100)}%`;
+  document.getElementById('d-pct').textContent   = `${pct}%`;
+  document.getElementById('d-vagas').textContent = `${n} / ${NVAGAS} vagas`;
+  document.getElementById('d-tarifa').textContent= `R$ ${te.toFixed(3)}/kWh`;
+  if(adminOpen) renderAdmin();
+}
+
+function toggleAdmin(){
+  adminOpen = !adminOpen;
+  document.getElementById('admin').style.display = adminOpen ? 'block' : 'none';
+  document.querySelector('.btn-admin').textContent = adminOpen ? '▲ Fechar' : '▼ Console OCPP';
+  if(adminOpen) renderAdmin();
+}
+function switchAtab(t){
+  document.querySelectorAll('.atab').forEach((el,i)=>el.classList.toggle('on',(i===0&&t==='log')||(i===1&&t==='hist')));
+  document.getElementById('atb-log').classList.toggle('on',t==='log');
+  document.getElementById('atb-hist').classList.toggle('on',t==='hist');
+}
+function renderAdmin(){
+  const cls={co:'l-co',ci:'l-ci',mb:'l-mb',sy:'l-sy',ai:'l-ai'};
+  const pfx={co:'[OCPP →]',ci:'[OCPP ←]',mb:'[MODBUS]',sy:'[SISTEMA]',ai:'[IA    ]'};
+  document.getElementById('console').innerHTML = S.logs.map(l=>`<div><span class="l-ts">${l.ts}</span> <span class="${cls[l.t]||''}">${pfx[l.t]||'[LOG]'}</span> ${l.m}</div>`).join('');
+  if(!S.hist.length){ document.getElementById('hist-content').innerHTML='<div class="hempty">Nenhuma sessão finalizada.</div>'; return; }
+  const totE=S.hist.reduce((a,s)=>a+s.energia,0), totR=S.hist.reduce((a,s)=>a+s.custo,0);
+  document.getElementById('hist-content').innerHTML = `<table class="ht"><thead><tr><th>#TX</th><th>Vaga</th><th>Usuário</th><th>Tipo</th><th>Fonte</th><th>Energia</th><th>Custo</th><th>Pagamento</th></tr></thead><tbody>${
+    S.hist.map(s=>`<tr><td style="color:var(--tx-m)">#${s.idTx}</td><td>Vaga ${s.idV}</td><td style="color:var(--tx-b);font-weight:600">${s.nome}</td><td>${s.nomeRec}</td><td>${s.fonte}</td><td style="color:var(--cy)">${s.energia.toFixed(3)} kWh</td><td style="color:var(--am);font-weight:600">R$ ${s.custo.toFixed(2)}</td><td>${s.nomPag}</td></tr>`).join('')
+  }</tbody></table><div class="ht-foot"><div><span style="color:var(--tx-m)">Total energia: </span><span style="color:var(--tx-b);font-weight:600">${totE.toFixed(3)} kWh</span></div><div><span style="color:var(--tx-m)">Total receita: </span><span style="color:var(--am);font-weight:600">R$ ${totR.toFixed(2)}</span></div></div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITÁRIOS
+// ═══════════════════════════════════════════════════
+function toast(msg,tipo='i'){
+  const el=document.createElement('div'); el.className=`toast ${tipo}`; el.textContent=msg;
+  document.getElementById('toasts').appendChild(el); setTimeout(()=>el.remove(),3400);
+}
+function updateClock(){
+  const n=new Date(), h=String(n.getHours()).padStart(2,'0'), m=String(n.getMinutes()).padStart(2,'0'), s=String(n.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent=`${h}:${m}:${s}`;
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  lBoot();
+  lSys('ChargeGrid Intelligence v2.0 — 6 vagas disponíveis.');
+  lAI('IA: Sistema de predição de demanda inicializado. Monitorando MODBUS.');
+  render();
+  updateClock();
+  updateAI(0);
+  initChart();
+  setInterval(updateClock, 1000);
+  setInterval(realtimeTick, 1000);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ fecharKiosk(); document.getElementById('rep-overlay').classList.remove('open'); }
+});
+document.getElementById('rep-overlay').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+</script>
+</body>
+</html>
