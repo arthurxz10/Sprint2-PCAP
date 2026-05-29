@@ -192,7 +192,6 @@ prioridade (OCPP throttle)
 
 - 🎥 [Vídeo Sprint 2 — YouTube](https://youtube.com) *(adicionar link após gravação)*
 - 📋 [Quadro Kanban — GitHub Projects](https://github.com/users/arthurxz10/projects/2)
-- 📄 [Documentação Sprint 1](docs/sprint1-pesquisa.pdf)
 
 ---
 
